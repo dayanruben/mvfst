@@ -274,8 +274,14 @@ const PathInfo* QuicPathManager::onPathResponseReceived(
   MVVLOG(6) << "Path response received for path=" << path.id << " at "
             << path.pathValidationTime->time_since_epoch().count();
 
-  path.rttSample = std::chrono::duration_cast<std::chrono::microseconds>(
-      Clock::now() - *path.lastChallengeSentTimestamp);
+  // Only generate an RTT sample if the challenge was sent exactly once.
+  // On retransmission we cannot tell which transmission the response is
+  // for, so the measurement would be biased low.
+  if (path.firstChallengeSentTimestamp.has_value() &&
+      path.firstChallengeSentTimestamp == path.lastChallengeSentTimestamp) {
+    path.rttSample = std::chrono::duration_cast<std::chrono::microseconds>(
+        Clock::now() - *path.firstChallengeSentTimestamp);
+  }
 
   path.outstandingChallengeData.reset();
   path.firstChallengeSentTimestamp.reset();
@@ -300,7 +306,8 @@ const PathInfo* QuicPathManager::onPathResponseReceived(
   conn_.pendingEvents.schedulePathValidationTimeout =
       !pathsPendingResponse_.empty();
 
-  MVVLOG(6) << "Path validated with RTT=" << path.rttSample.value().count()
+  MVVLOG(6) << "Path validated with RTT="
+            << (path.rttSample.has_value() ? path.rttSample->count() : -1)
             << " pending response count=" << pathsPendingResponse_.size();
 
   return maybePath;

@@ -195,9 +195,10 @@ quic::Expected<bool, QuicError> updateSimpleFrameOnPacketReceived(
           conn.pathManager->onPathResponseReceived(pathResponse, pathId);
 
       // If this is the current path that just got validated, we should update
-      // the RTT.
-      if (validatedPath && validatedPath->id == conn.currentPathId) {
-        MVCHECK(validatedPath->rttSample.has_value());
+      // the RTT. The sample is absent if the challenge was retransmitted, in
+      // which case skip updating RTT.
+      if (validatedPath && validatedPath->id == conn.currentPathId &&
+          validatedPath->rttSample.has_value()) {
         updateRtt(conn, validatedPath->rttSample.value(), 0us);
       }
 

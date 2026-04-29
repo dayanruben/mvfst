@@ -349,6 +349,29 @@ TEST_F(QuicPathManagerTest, OnPathResponseReceivedStaleResponse) {
   EXPECT_EQ(validatedPath, nullptr);
 }
 
+TEST_F(QuicPathManagerTest, OnPathResponseReceivedRetransmittedChallenge) {
+  auto result = manager_->addPath(localAddr1_, peerAddr1_);
+  ASSERT_TRUE(result.has_value());
+  PathIdType id = result.value();
+
+  auto challengeResult = manager_->getNewPathChallengeData(id);
+  ASSERT_TRUE(challengeResult.has_value());
+
+  PathChallengeFrame challenge(challengeResult.value());
+  connState_->pendingEvents.pathChallenges.emplace(id, challenge);
+
+  // Simulate sending the challenge twice (second send is a retransmission).
+  manager_->onPathChallengeSent(challenge);
+  manager_->onPathChallengeSent(challenge);
+
+  PathResponseFrame response(challengeResult.value());
+  auto validatedPath = manager_->onPathResponseReceived(response, id);
+  ASSERT_NE(validatedPath, nullptr);
+  EXPECT_EQ(validatedPath->status, PathStatus::Validated);
+  // No RTT sample should be produced when the challenge was retransmitted.
+  EXPECT_FALSE(validatedPath->rttSample.has_value());
+}
+
 TEST_F(QuicPathManagerTest, GetEarliestChallengeTimeout) {
   // No pending responses initially
   auto timeout = manager_->getEarliestChallengeTimeout();
