@@ -279,8 +279,16 @@ quic::Expected<BufPtr, QuicError> FizzClientHandshake::getNextTrafficSecret(
         state_.context()->getFactory()->makeKeyDeriver(
             deriver, fizzErr, *state_.cipher()),
         fizzErr);
-    auto nextSecret = deriver->expandLabel(
-        secret, kQuicKULabel, BufHelpers::create(0), secret.size());
+    fizz::Buf nextSecret;
+    FIZZ_THROW_ON_ERROR(
+        deriver->expandLabel(
+            nextSecret,
+            fizzErr,
+            secret,
+            kQuicKULabel,
+            BufHelpers::create(0),
+            secret.size()),
+        fizzErr);
     return nextSecret;
   } catch (const std::exception& ex) {
     return quic::make_unexpected(

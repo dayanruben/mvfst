@@ -892,11 +892,16 @@ std::unique_ptr<folly::IOBuf> getProtectionKey() {
       factory.getFizzFactory()->makeKeyDeriver(
           deriver, fizzErr, fizz::CipherSuite::TLS_AES_128_GCM_SHA256),
       fizzErr);
-  auto pnKey = deriver->expandLabel(
-      quic::ByteRange(secret.data(), secret.size()),
-      kQuicPNLabel,
-      folly::IOBuf::create(0),
-      (*pnCipher).keyLength());
+  fizz::Buf pnKey;
+  FIZZ_THROW_ON_ERROR(
+      deriver->expandLabel(
+          pnKey,
+          fizzErr,
+          quic::ByteRange(secret.data(), secret.size()),
+          kQuicPNLabel,
+          folly::IOBuf::create(0),
+          (*pnCipher).keyLength()),
+      fizzErr);
   return pnKey;
 }
 

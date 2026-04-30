@@ -133,8 +133,16 @@ BufPtr FizzServerHandshake::getNextTrafficSecret(ByteRange secret) const {
       state_.context()->getFactory()->makeKeyDeriver(
           deriver, err, *state_.cipher()),
       err);
-  auto nextSecret = deriver->expandLabel(
-      secret, kQuicKULabel, BufHelpers::create(0), secret.size());
+  fizz::Buf nextSecret;
+  FIZZ_THROW_ON_ERROR(
+      deriver->expandLabel(
+          nextSecret,
+          err,
+          secret,
+          kQuicKULabel,
+          BufHelpers::create(0),
+          secret.size()),
+      err);
   return nextSecret;
 }
 

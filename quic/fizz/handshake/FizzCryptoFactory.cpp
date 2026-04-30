@@ -29,11 +29,16 @@ quic::Expected<BufPtr, QuicError> FizzCryptoFactory::makeInitialTrafficSecret(
       clientDestinationConnId.data(), clientDestinationConnId.size());
   folly::StringPiece salt = getQuicVersionSalt(version);
   auto initialSecret = deriver->hkdfExtract(salt, connIdRange);
-  auto trafficSecret = deriver->expandLabel(
-      ByteRange(initialSecret.data(), initialSecret.size()),
-      label,
-      BufHelpers::create(0),
-      fizz::Sha256::HashLen);
+  fizz::Buf trafficSecret;
+  FIZZ_THROW_ON_ERROR(
+      deriver->expandLabel(
+          trafficSecret,
+          err,
+          ByteRange(initialSecret.data(), initialSecret.size()),
+          label,
+          BufHelpers::create(0),
+          fizz::Sha256::HashLen),
+      err);
   return trafficSecret;
 }
 
@@ -61,16 +66,26 @@ FizzCryptoFactory::makeInitialAead(
       fizzFactory_->makeAead(
           aead, err, fizz::CipherSuite::TLS_AES_128_GCM_SHA256),
       err);
-  auto key = deriver->expandLabel(
-      trafficSecret->coalesce(),
-      kQuicKeyLabel,
-      BufHelpers::create(0),
-      aead->keyLength());
-  auto iv = deriver->expandLabel(
-      trafficSecret->coalesce(),
-      kQuicIVLabel,
-      BufHelpers::create(0),
-      aead->ivLength());
+  fizz::Buf key;
+  FIZZ_THROW_ON_ERROR(
+      deriver->expandLabel(
+          key,
+          err,
+          trafficSecret->coalesce(),
+          kQuicKeyLabel,
+          BufHelpers::create(0),
+          aead->keyLength()),
+      err);
+  fizz::Buf iv;
+  FIZZ_THROW_ON_ERROR(
+      deriver->expandLabel(
+          iv,
+          err,
+          trafficSecret->coalesce(),
+          kQuicIVLabel,
+          BufHelpers::create(0),
+          aead->ivLength()),
+      err);
 
   fizz::TrafficKey trafficKey;
   trafficKey.key = std::move(key);
@@ -94,8 +109,16 @@ FizzCryptoFactory::makePacketNumberCipher(ByteRange baseSecret) const {
       fizzFactory_->makeKeyDeriver(
           deriver, err, fizz::CipherSuite::TLS_AES_128_GCM_SHA256),
       err);
-  auto pnKey = deriver->expandLabel(
-      baseSecret, kQuicPNLabel, BufHelpers::create(0), pnCipher->keyLength());
+  fizz::Buf pnKey;
+  FIZZ_THROW_ON_ERROR(
+      deriver->expandLabel(
+          pnKey,
+          err,
+          baseSecret,
+          kQuicPNLabel,
+          BufHelpers::create(0),
+          pnCipher->keyLength()),
+      err);
   auto setKeyResult = pnCipher->setKey(pnKey->coalesce());
   if (!setKeyResult.has_value()) {
     return quic::make_unexpected(setKeyResult.error());
