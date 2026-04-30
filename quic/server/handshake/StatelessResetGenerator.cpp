@@ -8,6 +8,7 @@
 #include <quic/server/handshake/StatelessResetGenerator.h>
 
 #include <fizz/backend/openssl/OpenSSL.h>
+#include <fizz/util/Status.h>
 #include <folly/Range.h>
 
 namespace {
@@ -31,10 +32,16 @@ StatelessResetToken StatelessResetGenerator::generateToken(
   auto info = toData(connId);
   info.appendToChain(
       BufHelpers::wrapBuffer(addressStr_.data(), addressStr_.size()));
-  auto out = hkdf_.expand(
-      ByteRange(extractedSecret_.data(), extractedSecret_.size()),
-      info,
-      token.size());
+  std::unique_ptr<folly::IOBuf> out;
+  fizz::Error err;
+  FIZZ_THROW_ON_ERROR(
+      hkdf_.expand(
+          out,
+          err,
+          ByteRange(extractedSecret_.data(), extractedSecret_.size()),
+          info,
+          token.size()),
+      err);
   out->coalesce();
   memcpy(token.data(), out->data(), out->length());
   return token;

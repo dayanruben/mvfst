@@ -96,6 +96,7 @@ mvfst_cpp_library(
     ],
     deps = [
         "//fizz/backend:openssl",
+        "//fizz/util:status",
         "//folly:range",
     ],
     exported_deps = [
