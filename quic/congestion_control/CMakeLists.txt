@@ -10,6 +10,7 @@ mvfst_add_library(mvfst_congestion_control_bandwidth
     Bandwidth.cpp
   DEPS
     Folly::folly_lang_assume
+    fmt::fmt
 )
 
 mvfst_add_library(mvfst_congestion_control_congestion_controller
@@ -217,6 +218,7 @@ mvfst_add_library(mvfst_congestion_control_simulated_tbf
   EXPORTED_DEPS
     mvfst_constants
     Folly::folly_token_bucket
+    ${GLOG_LIBRARIES}
 )
 
 mvfst_add_library(mvfst_congestion_control_throttling_signal_provider

@@ -47,4 +47,5 @@ mvfst_add_library(mvfst_server_state_server
     Folly::folly_network_address
     Folly::folly_overload
     Folly::folly_random
+    ${GLOG_LIBRARIES}
 )

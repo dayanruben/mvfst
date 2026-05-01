@@ -17,4 +17,6 @@ mvfst_add_library(mvfst_logging_oops_logger_glog_oops_logger
     mvfst_common_mvfst_logging
     mvfst_logging_oops_logger
     Folly::folly_debugging_symbolizer_symbolizer
+    ${GLOG_LIBRARIES}
+    fmt::fmt
 )
