@@ -45,10 +45,14 @@ FizzRetryIntegrityTagGenerator::getRetryIntegrityTag(
   fizz::TrafficKey trafficKey;
   trafficKey.key = BufHelpers::copyBuffer(retryPacketKey(version));
   trafficKey.iv = BufHelpers::copyBuffer(retryPacketNonce(version));
-  retryCipher->setKey(std::move(trafficKey));
+  FIZZ_THROW_ON_ERROR(retryCipher->setKey(err, std::move(trafficKey)), err);
 
-  return retryCipher->encrypt(
-      std::make_unique<folly::IOBuf>(), pseudoRetryPacket, 0);
+  std::unique_ptr<folly::IOBuf> ret;
+  FIZZ_THROW_ON_ERROR(
+      retryCipher->encrypt(
+          ret, err, std::make_unique<folly::IOBuf>(), pseudoRetryPacket, 0),
+      err);
+  return ret;
 }
 
 } // namespace quic

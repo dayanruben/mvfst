@@ -39,8 +39,13 @@ class FizzAead final : public Aead {
       const Buf* associatedData,
       uint64_t seqNum) const override {
     try {
-      return fizzAead->inplaceEncrypt(
-          std::move(plaintext), associatedData, seqNum);
+      BufPtr ret;
+      fizz::Error err;
+      FIZZ_THROW_ON_ERROR(
+          fizzAead->inplaceEncrypt(
+              ret, err, std::move(plaintext), associatedData, seqNum),
+          err);
+      return ret;
     } catch (const std::exception& ex) {
       return quic::make_unexpected(
           QuicError(TransportErrorCode::INTERNAL_ERROR, ex.what()));
@@ -68,8 +73,17 @@ class FizzAead final : public Aead {
       uint64_t seqNum) const override {
     fizz::Aead::AeadOptions options;
     options.bufferOpt = fizz::Aead::BufferOption::AllowInPlace;
-    auto result = fizzAead->tryDecrypt(
-        std::move(ciphertext), associatedData, seqNum, options);
+    folly::Optional<BufPtr> result;
+    fizz::Error err;
+    FIZZ_THROW_ON_ERROR(
+        fizzAead->tryDecrypt(
+            result,
+            err,
+            std::move(ciphertext),
+            associatedData,
+            seqNum,
+            options),
+        err);
     if (result.has_value()) {
       return Optional<BufPtr>(std::move(result.value()));
     } else {

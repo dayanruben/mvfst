@@ -90,7 +90,7 @@ FizzCryptoFactory::makeInitialAead(
   fizz::TrafficKey trafficKey;
   trafficKey.key = std::move(key);
   trafficKey.iv = std::move(iv);
-  aead->setKey(std::move(trafficKey));
+  FIZZ_THROW_ON_ERROR(aead->setKey(err, std::move(trafficKey)), err);
   return QUIC_DEFAULT_AEAD::wrap(std::move(aead));
 }
 
